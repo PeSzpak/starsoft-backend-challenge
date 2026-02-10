@@ -1,0 +1,33 @@
+version: "3.8" 
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: cinema_postgres
+    environment:
+      POSTGRES_USER: cinema
+      POSTGRES_PASSWORD: cinema
+      POSTGRES_DB: cinema_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: cinema_redis
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: cinema_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: cinema
+      RABBITMQ_DEFAULT_PASS: cinema
+
+volumes:
+  pgdata:
