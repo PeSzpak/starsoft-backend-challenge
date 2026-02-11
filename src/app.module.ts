@@ -8,11 +8,11 @@ import { SessionsModule } from './sessions/sessions.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'cinema',
-      password: 'cinema',
-      database: 'cinema_db',
+      host: process.env.DB_HOST ?? '127.0.0.1',
+      port: Number(process.env.DB_PORT ?? 5432),
+      username: process.env.DB_USER ?? 'cinema',
+      password: process.env.DB_PASSWORD ?? 'cinema',
+      database: process.env.DB_NAME ?? 'cinema_db',
       autoLoadEntities: true,
       synchronize: true,
     }),

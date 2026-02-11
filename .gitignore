@@ -8,3 +8,5 @@ yarn-error.log*
 
 # Ignore local reference assets
 /diagrama-fluxo.png
+
+.env
