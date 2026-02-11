@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
+import { RedisLockService } from '../redis/redis-lock.service';
 import { Sale } from '../sales/sale.entity';
 import { Seat, SeatStatus } from '../seats/seat.entity';
 import { Session } from '../sessions/session.entity';
@@ -16,16 +17,9 @@ import { ReservationSeat } from './reservation-seat.entity';
 export class ReservationsService {
   constructor(
     private readonly dataSource: DataSource,
+    private readonly redisLockService: RedisLockService,
     @InjectRepository(Session)
     private readonly sessionRepository: Repository<Session>,
-    @InjectRepository(Reservation)
-    private readonly reservationRepository: Repository<Reservation>,
-    @InjectRepository(ReservationSeat)
-    private readonly reservationSeatRepository: Repository<ReservationSeat>,
-    @InjectRepository(Seat)
-    private readonly seatRepository: Repository<Seat>,
-    @InjectRepository(Sale)
-    private readonly saleRepository: Repository<Sale>,
   ) {}
 
   async create(dto: CreateReservationDto): Promise<{
@@ -42,61 +36,80 @@ export class ReservationsService {
       throw new NotFoundException(`Session ${dto.sessionId} not found`);
     }
 
-    return this.dataSource.transaction(async (manager) => {
-      const seatRepo = manager.getRepository(Seat);
-      const reservationRepo = manager.getRepository(Reservation);
-      const reservationSeatRepo = manager.getRepository(ReservationSeat);
+    const lockKeys = dto.seatNumbers.map(
+      (seatNumber) => `lock:session:${dto.sessionId}:seat:${seatNumber}`,
+    );
+    const lockTtlMs = 5_000;
+    const acquiredLocks = await this.redisLockService.acquireManyLocks(
+      lockKeys,
+      lockTtlMs,
+    );
 
-      const seats = await seatRepo.find({
-        where: {
+    if (!acquiredLocks) {
+      throw new ConflictException(
+        'One or more seats are being reserved by another request',
+      );
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const seatRepo = manager.getRepository(Seat);
+        const reservationRepo = manager.getRepository(Reservation);
+        const reservationSeatRepo = manager.getRepository(ReservationSeat);
+
+        const seats = await seatRepo.find({
+          where: {
+            sessionId: dto.sessionId,
+            seatNumber: In(dto.seatNumbers),
+          },
+        });
+
+        if (seats.length !== dto.seatNumbers.length) {
+          throw new NotFoundException('One or more seat numbers do not exist');
+        }
+
+        const unavailableSeats = seats.filter(
+          (seat) => seat.status !== SeatStatus.AVAILABLE,
+        );
+
+        if (unavailableSeats.length > 0) {
+          throw new ConflictException('One or more seats are unavailable');
+        }
+
+        const expiresAt = new Date(Date.now() + 30_000);
+        const reservation = reservationRepo.create({
           sessionId: dto.sessionId,
-          seatNumber: In(dto.seatNumbers),
-        },
-      });
+          userId: dto.userId,
+          status: ReservationStatus.PENDING,
+          expiresAt,
+        });
 
-      if (seats.length !== dto.seatNumbers.length) {
-        throw new NotFoundException('One or more seat numbers do not exist');
-      }
+        const savedReservation = await reservationRepo.save(reservation);
 
-      const unavailableSeats = seats.filter(
-        (seat) => seat.status !== SeatStatus.AVAILABLE,
-      );
+        const links = seats.map((seat) =>
+          reservationSeatRepo.create({
+            reservationId: savedReservation.id,
+            seatId: seat.id,
+          }),
+        );
 
-      if (unavailableSeats.length > 0) {
-        throw new ConflictException('One or more seats are unavailable');
-      }
+        await reservationSeatRepo.save(links);
 
-      const expiresAt = new Date(Date.now() + 30_000);
-      const reservation = reservationRepo.create({
-        sessionId: dto.sessionId,
-        userId: dto.userId,
-        status: ReservationStatus.PENDING,
-        expiresAt,
-      });
+        seats.forEach((seat) => {
+          seat.status = SeatStatus.RESERVED;
+        });
+        await seatRepo.save(seats);
 
-      const savedReservation = await reservationRepo.save(reservation);
-
-      const links = seats.map((seat) =>
-        reservationSeatRepo.create({
+        return {
           reservationId: savedReservation.id,
-          seatId: seat.id,
-        }),
-      );
-
-      await reservationSeatRepo.save(links);
-
-      seats.forEach((seat) => {
-        seat.status = SeatStatus.RESERVED;
+          expiresAt: savedReservation.expiresAt,
+          seatNumbers: seats.map((seat) => seat.seatNumber),
+          status: savedReservation.status,
+        };
       });
-      await seatRepo.save(seats);
-
-      return {
-        reservationId: savedReservation.id,
-        expiresAt: savedReservation.expiresAt,
-        seatNumbers: seats.map((seat) => seat.seatNumber),
-        status: savedReservation.status,
-      };
-    });
+    } finally {
+      await this.redisLockService.releaseManyLocks(acquiredLocks);
+    }
   }
 
   async confirmPayment(reservationId: string): Promise<Sale> {

@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { ReservationsModule } from './reservations/reservations.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     SessionsModule,
     ReservationsModule,
     HealthModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],
