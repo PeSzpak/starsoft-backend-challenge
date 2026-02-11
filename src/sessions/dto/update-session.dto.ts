@@ -1,5 +1,6 @@
+import { Type } from 'class-transformer';
 import {
-  IsISO8601,
+  IsDate,
   IsInt,
   IsOptional,
   IsString,
@@ -19,8 +20,9 @@ export class UpdateSessionDto {
   roomName?: string;
 
   @IsOptional()
-  @IsISO8601()
-  startsAt?: string;
+  @Type(() => Date)
+  @IsDate()
+  startsAt?: Date;
 
   @IsOptional()
   @IsInt()

@@ -13,10 +13,7 @@ export class SessionsService {
   ) {}
 
   async create(dto: CreateSessionDto): Promise<Session> {
-    const session = this.sessionRepository.create({
-      ...dto,
-      startsAt: new Date(dto.startsAt),
-    });
+    const session = this.sessionRepository.create(dto);
 
     return this.sessionRepository.save(session);
   }
@@ -40,8 +37,8 @@ export class SessionsService {
   async update(id: number, dto: UpdateSessionDto): Promise<Session> {
     const session = await this.findOne(id);
 
-    if (dto.startsAt) {
-      session.startsAt = new Date(dto.startsAt);
+    if (dto.startsAt !== undefined) {
+      session.startsAt = dto.startsAt;
     }
 
     if (dto.movieTitle !== undefined) {

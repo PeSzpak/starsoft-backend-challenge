@@ -1,5 +1,6 @@
+import { Type } from 'class-transformer';
 import {
-  IsISO8601,
+  IsDate,
   IsInt,
   IsNotEmpty,
   IsString,
@@ -18,8 +19,9 @@ export class CreateSessionDto {
   @MaxLength(50)
   roomName: string;
 
-  @IsISO8601()
-  startsAt: string;
+  @Type(() => Date)
+  @IsDate()
+  startsAt: Date;
 
   @IsInt()
   @Min(1)
