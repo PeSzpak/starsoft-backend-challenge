@@ -32,6 +32,11 @@ export class SessionsController {
     return this.sessionsService.findOne(id);
   }
 
+  @Get(':id/availability')
+  getAvailability(@Param('id', ParseIntPipe) id: number) {
+    return this.sessionsService.getAvailability(id);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,

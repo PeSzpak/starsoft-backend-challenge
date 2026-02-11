@@ -20,6 +20,9 @@ export class Session {
   @Column({ type: 'int' })
   priceCents: number;
 
+  @Column({ type: 'int', default: 16 })
+  totalSeats: number;
+
   @OneToMany(() => Seat, (seat) => seat.session)
   seats: Seat[];
 

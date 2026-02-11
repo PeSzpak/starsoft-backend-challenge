@@ -28,4 +28,9 @@ export class UpdateSessionDto {
   @IsInt()
   @Min(1)
   priceCents?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(16)
+  totalSeats?: number;
 }

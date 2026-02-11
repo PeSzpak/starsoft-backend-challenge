@@ -3,6 +3,7 @@ import {
   IsDate,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   Min,
@@ -26,4 +27,9 @@ export class CreateSessionDto {
   @IsInt()
   @Min(1)
   priceCents: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(16)
+  totalSeats?: number;
 }
