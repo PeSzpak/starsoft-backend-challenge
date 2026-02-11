@@ -1,4 +1,11 @@
-import { IsISO8601, IsInt, IsNotEmpty, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsISO8601,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateSessionDto {
   @IsString()
