@@ -1,4 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Reservation } from '../reservations/reservation.entity';
+import { Sale } from '../sales/sale.entity';
+import { Seat } from '../seats/seat.entity';
 
 @Entity('sessions')
 export class Session {
@@ -16,4 +19,13 @@ export class Session {
 
   @Column({ type: 'int' })
   priceCents: number;
+
+  @OneToMany(() => Seat, (seat) => seat.session)
+  seats: Seat[];
+
+  @OneToMany(() => Reservation, (reservation) => reservation.session)
+  reservations: Reservation[];
+
+  @OneToMany(() => Sale, (sale) => sale.session)
+  sales: Sale[];
 }
