@@ -2,10 +2,9 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { Session } from './sessions/session.entity';
+import { SessionsModule } from './sessions/sessions.module';
 
 @Module({
-  imports: [],
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -17,7 +16,7 @@ import { Session } from './sessions/session.entity';
       autoLoadEntities: true,
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([Session]),
+    SessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
