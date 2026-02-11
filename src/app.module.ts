@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { RedisModule } from './redis/redis.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { OutboxModule } from './outbox/outbox.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MessagingModule } from './messaging/messaging.module';
     HealthModule,
     RedisModule,
     MessagingModule,
+    OutboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

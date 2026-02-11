@@ -7,9 +7,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import {
   PAYMENT_CONFIRMED_ROUTING_KEY,
+  RESERVATION_CREATED_ROUTING_KEY,
   RESERVATION_EXPIRED_ROUTING_KEY,
 } from '../messaging/messaging.constants';
-import { MessagingService } from '../messaging/messaging.service';
+import { OutboxService } from '../outbox/outbox.service';
 import { RedisLockService } from '../redis/redis-lock.service';
 import { Sale } from '../sales/sale.entity';
 import { Seat, SeatStatus } from '../seats/seat.entity';
@@ -23,7 +24,7 @@ export class ReservationsService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly redisLockService: RedisLockService,
-    private readonly messagingService: MessagingService,
+    private readonly outboxService: OutboxService,
     @InjectRepository(Session)
     private readonly sessionRepository: Repository<Session>,
   ) {}
@@ -58,7 +59,7 @@ export class ReservationsService {
     }
 
     try {
-      const result = await this.dataSource.transaction(async (manager) => {
+      return await this.dataSource.transaction(async (manager) => {
         const seatRepo = manager.getRepository(Seat);
         const reservationRepo = manager.getRepository(Reservation);
         const reservationSeatRepo = manager.getRepository(ReservationSeat);
@@ -106,33 +107,34 @@ export class ReservationsService {
         });
         await seatRepo.save(seats);
 
+        const eventPayload = {
+          reservationId: savedReservation.id,
+          sessionId: dto.sessionId,
+          userId: dto.userId,
+          seatNumbers: seats.map((seat) => seat.seatNumber),
+          expiresAt: savedReservation.expiresAt.toISOString(),
+        };
+
+        await this.outboxService.enqueue(
+          manager,
+          RESERVATION_CREATED_ROUTING_KEY,
+          eventPayload,
+        );
+
         return {
           reservationId: savedReservation.id,
           expiresAt: savedReservation.expiresAt,
-          seatNumbers: seats.map((seat) => seat.seatNumber),
+          seatNumbers: eventPayload.seatNumbers,
           status: savedReservation.status,
         };
       });
-
-      await this.messagingService.publishReservationCreated(
-        {
-          reservationId: result.reservationId,
-          sessionId: dto.sessionId,
-          userId: dto.userId,
-          seatNumbers: result.seatNumbers,
-          expiresAt: result.expiresAt.toISOString(),
-        },
-        30_000,
-      );
-
-      return result;
     } finally {
       await this.redisLockService.releaseManyLocks(acquiredLocks);
     }
   }
 
   async confirmPayment(reservationId: string): Promise<Sale> {
-    const sale = await this.dataSource.transaction(async (manager) => {
+    return this.dataSource.transaction(async (manager) => {
       const reservationRepo = manager.getRepository(Reservation);
       const seatRepo = manager.getRepository(Seat);
       const saleRepo = manager.getRepository(Sale);
@@ -201,21 +203,20 @@ export class ReservationsService {
       });
 
       const savedSale = await saleRepo.save(sale);
+
+      await this.outboxService.enqueue(manager, PAYMENT_CONFIRMED_ROUTING_KEY, {
+        reservationId,
+        saleId: savedSale.id,
+        sessionId: savedSale.sessionId,
+        userId: savedSale.userId,
+      });
+
       return savedSale;
     });
-
-    await this.messagingService.publishEvent(PAYMENT_CONFIRMED_ROUTING_KEY, {
-      reservationId,
-      saleId: sale.id,
-      sessionId: sale.sessionId,
-      userId: sale.userId,
-    });
-
-    return sale;
   }
 
   async expireReservationIfPending(reservationId: string): Promise<void> {
-    const expired = await this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       const reservationRepo = manager.getRepository(Reservation);
       const seatRepo = manager.getRepository(Seat);
 
@@ -229,15 +230,15 @@ export class ReservationsService {
       });
 
       if (!reservation) {
-        return false;
+        return;
       }
 
       if (reservation.status !== ReservationStatus.PENDING) {
-        return false;
+        return;
       }
 
       if (reservation.expiresAt.getTime() > Date.now()) {
-        return false;
+        return;
       }
 
       reservation.status = ReservationStatus.EXPIRED;
@@ -249,16 +250,13 @@ export class ReservationsService {
       });
       await seatRepo.save(seats);
 
-      return true;
-    });
-
-    if (expired) {
-      await this.messagingService.publishEvent(
+      await this.outboxService.enqueue(
+        manager,
         RESERVATION_EXPIRED_ROUTING_KEY,
         {
           reservationId,
         },
       );
-    }
+    });
   }
 }
