@@ -5,6 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
+import {
+  PAYMENT_CONFIRMED_ROUTING_KEY,
+  RESERVATION_EXPIRED_ROUTING_KEY,
+} from '../messaging/messaging.constants';
+import { MessagingService } from '../messaging/messaging.service';
 import { RedisLockService } from '../redis/redis-lock.service';
 import { Sale } from '../sales/sale.entity';
 import { Seat, SeatStatus } from '../seats/seat.entity';
@@ -18,6 +23,7 @@ export class ReservationsService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly redisLockService: RedisLockService,
+    private readonly messagingService: MessagingService,
     @InjectRepository(Session)
     private readonly sessionRepository: Repository<Session>,
   ) {}
@@ -52,7 +58,7 @@ export class ReservationsService {
     }
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const result = await this.dataSource.transaction(async (manager) => {
         const seatRepo = manager.getRepository(Seat);
         const reservationRepo = manager.getRepository(Reservation);
         const reservationSeatRepo = manager.getRepository(ReservationSeat);
@@ -107,13 +113,26 @@ export class ReservationsService {
           status: savedReservation.status,
         };
       });
+
+      await this.messagingService.publishReservationCreated(
+        {
+          reservationId: result.reservationId,
+          sessionId: dto.sessionId,
+          userId: dto.userId,
+          seatNumbers: result.seatNumbers,
+          expiresAt: result.expiresAt.toISOString(),
+        },
+        30_000,
+      );
+
+      return result;
     } finally {
       await this.redisLockService.releaseManyLocks(acquiredLocks);
     }
   }
 
   async confirmPayment(reservationId: string): Promise<Sale> {
-    return this.dataSource.transaction(async (manager) => {
+    const sale = await this.dataSource.transaction(async (manager) => {
       const reservationRepo = manager.getRepository(Reservation);
       const seatRepo = manager.getRepository(Seat);
       const saleRepo = manager.getRepository(Sale);
@@ -181,7 +200,65 @@ export class ReservationsService {
         totalCents: reservedSeats.length * reservation.session.priceCents,
       });
 
-      return saleRepo.save(sale);
+      const savedSale = await saleRepo.save(sale);
+      return savedSale;
     });
+
+    await this.messagingService.publishEvent(PAYMENT_CONFIRMED_ROUTING_KEY, {
+      reservationId,
+      saleId: sale.id,
+      sessionId: sale.sessionId,
+      userId: sale.userId,
+    });
+
+    return sale;
+  }
+
+  async expireReservationIfPending(reservationId: string): Promise<void> {
+    const expired = await this.dataSource.transaction(async (manager) => {
+      const reservationRepo = manager.getRepository(Reservation);
+      const seatRepo = manager.getRepository(Seat);
+
+      const reservation = await reservationRepo.findOne({
+        where: { id: reservationId },
+        relations: {
+          reservationSeats: {
+            seat: true,
+          },
+        },
+      });
+
+      if (!reservation) {
+        return false;
+      }
+
+      if (reservation.status !== ReservationStatus.PENDING) {
+        return false;
+      }
+
+      if (reservation.expiresAt.getTime() > Date.now()) {
+        return false;
+      }
+
+      reservation.status = ReservationStatus.EXPIRED;
+      await reservationRepo.save(reservation);
+
+      const seats = reservation.reservationSeats.map((item) => item.seat);
+      seats.forEach((seat) => {
+        seat.status = SeatStatus.AVAILABLE;
+      });
+      await seatRepo.save(seats);
+
+      return true;
+    });
+
+    if (expired) {
+      await this.messagingService.publishEvent(
+        RESERVATION_EXPIRED_ROUTING_KEY,
+        {
+          reservationId,
+        },
+      );
+    }
   }
 }

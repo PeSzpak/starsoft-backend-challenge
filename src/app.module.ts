@@ -7,6 +7,7 @@ import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { RedisModule } from './redis/redis.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RedisModule } from './redis/redis.module';
     ReservationsModule,
     HealthModule,
     RedisModule,
+    MessagingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
