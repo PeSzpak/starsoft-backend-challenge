@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { OutboxEvent, OutboxStatus } from './outbox-event.entity';
 
 @Injectable()
 export class OutboxService {
+  constructor(
+    @InjectRepository(OutboxEvent)
+    private readonly outboxRepository: Repository<OutboxEvent>,
+  ) {}
+
   async enqueue(
     manager: EntityManager,
     eventType: string,
@@ -23,5 +29,53 @@ export class OutboxService {
         lastError: null,
       }),
     );
+  }
+
+  async getMetrics(): Promise<{
+    pendingCount: number;
+    failedCount: number;
+    publishedCount: number;
+    oldestPendingAgeSeconds: number;
+  }> {
+    const [pendingCount, failedCount, publishedCount, oldestPending] =
+      await Promise.all([
+        this.outboxRepository.count({
+          where: { status: OutboxStatus.PENDING },
+        }),
+        this.outboxRepository.count({ where: { status: OutboxStatus.FAILED } }),
+        this.outboxRepository.count({
+          where: { status: OutboxStatus.PUBLISHED },
+        }),
+        this.outboxRepository.findOne({
+          where: { status: OutboxStatus.PENDING },
+          order: { createdAt: 'ASC' },
+        }),
+      ]);
+
+    const oldestPendingAgeSeconds = oldestPending
+      ? Math.floor((Date.now() - oldestPending.createdAt.getTime()) / 1000)
+      : 0;
+
+    return {
+      pendingCount,
+      failedCount,
+      publishedCount,
+      oldestPendingAgeSeconds,
+    };
+  }
+
+  async requeueFailedEvents(): Promise<number> {
+    const result = await this.outboxRepository
+      .createQueryBuilder()
+      .update(OutboxEvent)
+      .set({
+        status: OutboxStatus.PENDING,
+        availableAt: new Date(),
+        lastError: null,
+      })
+      .where('status = :status', { status: OutboxStatus.FAILED })
+      .execute();
+
+    return result.affected ?? 0;
   }
 }

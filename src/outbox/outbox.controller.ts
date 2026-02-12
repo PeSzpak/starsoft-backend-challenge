@@ -1,0 +1,27 @@
+import { Controller, Get, Post } from '@nestjs/common';
+import { OutboxPublisherService } from './outbox-publisher.service';
+import { OutboxService } from './outbox.service';
+
+@Controller('admin/outbox')
+export class OutboxController {
+  constructor(
+    private readonly outboxService: OutboxService,
+    private readonly outboxPublisherService: OutboxPublisherService,
+  ) {}
+
+  @Get('metrics')
+  getMetrics() {
+    return this.outboxService.getMetrics();
+  }
+
+  @Post('retry-failed')
+  async retryFailed() {
+    const requeued = await this.outboxService.requeueFailedEvents();
+    await this.outboxPublisherService.flushNow();
+
+    return {
+      requeued,
+      flushed: true,
+    };
+  }
+}

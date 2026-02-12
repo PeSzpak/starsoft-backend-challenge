@@ -39,6 +39,10 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async flushNow(): Promise<void> {
+    await this.flushPending();
+  }
+
   private async flushPending(): Promise<void> {
     if (this.running) {
       return;
