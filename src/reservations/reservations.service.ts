@@ -9,6 +9,7 @@ import {
   PAYMENT_CONFIRMED_ROUTING_KEY,
   RESERVATION_CREATED_ROUTING_KEY,
   RESERVATION_EXPIRED_ROUTING_KEY,
+  SEAT_RELEASED_ROUTING_KEY,
 } from '../messaging/messaging.constants';
 import { RequestContextService } from '../common/request-context.service';
 import { OutboxService } from '../outbox/outbox.service';
@@ -262,6 +263,54 @@ export class ReservationsService {
           correlationId: this.requestContextService.getCorrelationId(),
         },
       );
+
+      await this.outboxService.enqueue(manager, SEAT_RELEASED_ROUTING_KEY, {
+        reservationId,
+        sessionId: reservation.sessionId,
+        seatNumbers: seats.map((seat) => seat.seatNumber),
+        correlationId: this.requestContextService.getCorrelationId(),
+      });
     });
+  }
+
+  async getPurchaseHistory(userId: string): Promise<
+    Array<{
+      saleId: string;
+      reservationId: string;
+      sessionId: number;
+      movieTitle: string;
+      roomName: string;
+      startsAt: Date;
+      seatNumbers: string[];
+      totalCents: number;
+      confirmedAt: Date;
+    }>
+  > {
+    const sales = await this.dataSource.getRepository(Sale).find({
+      where: { userId },
+      relations: {
+        session: true,
+        reservation: {
+          reservationSeats: {
+            seat: true,
+          },
+        },
+      },
+      order: { confirmedAt: 'DESC' },
+    });
+
+    return sales.map((sale) => ({
+      saleId: sale.id,
+      reservationId: sale.reservationId,
+      sessionId: sale.sessionId,
+      movieTitle: sale.session.movieTitle,
+      roomName: sale.session.roomName,
+      startsAt: sale.session.startsAt,
+      seatNumbers: sale.reservation.reservationSeats.map(
+        (item) => item.seat.seatNumber,
+      ),
+      totalCents: sale.totalCents,
+      confirmedAt: sale.confirmedAt,
+    }));
   }
 }
