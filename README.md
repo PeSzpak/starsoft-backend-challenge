@@ -22,7 +22,7 @@ Objetivos principais desta implementacao:
 - Docker e Docker Compose
 - npm
 
-### 3.2 Subir infraestrutura
+### 3.2 Subir aplicacao + infraestrutura
 ```bash
 docker compose up -d
 ```
@@ -43,17 +43,12 @@ DB_PORT=5433
 npm install
 ```
 
-### 3.5 Subir API
-```bash
-npm run start:dev
-```
-
-### 3.6 Checar saude
+### 3.5 Checar saude
 ```bash
 curl http://localhost:3001/health
 ```
 
-### 3.7 Swagger
+### 3.6 Swagger
 - URL: `http://localhost:3001/api-docs`
 
 ## 4. Fluxo de Teste Rapido
@@ -138,10 +133,14 @@ Esperado: sucesso unico para o mesmo assento e demais requisicoes com `409`.
 - `GET /admin/outbox/metrics`
 - `POST /admin/outbox/retry-failed`
 
+### Purchase History
+- `GET /reservations/users/:userId/purchases`
+
 ## 7. Eventos Publicados
 - `reservation.created`
 - `reservation.expire` (routing key de processamento da expiracao)
 - `reservation.expired`
+- `seat.released`
 - `payment.confirmed`
 
 ## 8. Decisoes Tecnicas
