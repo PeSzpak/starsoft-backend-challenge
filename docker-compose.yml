@@ -1,4 +1,32 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cinema_app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: cinema
+      DB_PASSWORD: cinema
+      DB_NAME: cinema_db
+      DB_SYNC: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: cinema
+      RABBITMQ_PASSWORD: cinema
+      RABBITMQ_VHOST: /
+      OUTBOX_POLL_MS: 1000
+    ports:
+      - "3001:3000"
+
   postgres:
     image: postgres:16
     container_name: cinema_postgres
