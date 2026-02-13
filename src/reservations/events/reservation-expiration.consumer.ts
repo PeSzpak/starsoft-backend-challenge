@@ -10,6 +10,7 @@ type ReservationCreatedEvent = {
   userId: string;
   seatNumbers: string[];
   expiresAt: string;
+  correlationId?: string;
 };
 
 @Injectable()
@@ -24,8 +25,12 @@ export class ReservationExpirationConsumer implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.messagingService.consume(
       RESERVATION_EXPIRATION_PROCESS_QUEUE,
-      async (_message: ConsumeMessage, payload: unknown) => {
+      async (message: ConsumeMessage, payload: unknown) => {
         const event = payload as ReservationCreatedEvent;
+        const headerCorrelationId = message.properties.headers?.[
+          'x-correlation-id'
+        ] as string | undefined;
+        const correlationId = event?.correlationId ?? headerCorrelationId;
 
         if (!event?.reservationId) {
           this.logger.warn(
@@ -33,6 +38,10 @@ export class ReservationExpirationConsumer implements OnModuleInit {
           );
           return;
         }
+
+        this.logger.log(
+          `Processing reservation expiration for ${event.reservationId} correlationId=${correlationId ?? 'n/a'}`,
+        );
 
         await this.reservationsService.expireReservationIfPending(
           event.reservationId,

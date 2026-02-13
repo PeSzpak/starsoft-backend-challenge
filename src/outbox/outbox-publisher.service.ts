@@ -64,12 +64,20 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
   private async publishOne(event: OutboxEvent): Promise<void> {
     try {
+      const correlationId = this.getCorrelationId(event.payload);
+      const headers = correlationId
+        ? { 'x-correlation-id': correlationId }
+        : undefined;
+
       if (event.eventType === RESERVATION_CREATED_ROUTING_KEY) {
         await this.publishReservationCreated(event);
       } else {
         await this.messagingService.publishEvent(
           event.eventType,
           event.payload,
+          {
+            headers,
+          },
         );
       }
 
@@ -102,12 +110,20 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
       userId: string;
       seatNumbers: string[];
       expiresAt: string;
+      correlationId?: string;
     };
 
     const expiresAt = new Date(payload.expiresAt);
     const ttlMs = Math.max(0, expiresAt.getTime() - Date.now());
 
     await this.messagingService.publishReservationCreated(payload, ttlMs);
+  }
+
+  private getCorrelationId(
+    payload: Record<string, unknown>,
+  ): string | undefined {
+    const value = payload.correlationId;
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
   private async claimPendingBatch(limit: number): Promise<OutboxEvent[]> {

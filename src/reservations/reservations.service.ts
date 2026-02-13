@@ -10,6 +10,7 @@ import {
   RESERVATION_CREATED_ROUTING_KEY,
   RESERVATION_EXPIRED_ROUTING_KEY,
 } from '../messaging/messaging.constants';
+import { RequestContextService } from '../common/request-context.service';
 import { OutboxService } from '../outbox/outbox.service';
 import { RedisLockService } from '../redis/redis-lock.service';
 import { Sale } from '../sales/sale.entity';
@@ -25,6 +26,7 @@ export class ReservationsService {
     private readonly dataSource: DataSource,
     private readonly redisLockService: RedisLockService,
     private readonly outboxService: OutboxService,
+    private readonly requestContextService: RequestContextService,
     @InjectRepository(Session)
     private readonly sessionRepository: Repository<Session>,
   ) {}
@@ -113,6 +115,7 @@ export class ReservationsService {
           userId: dto.userId,
           seatNumbers: seats.map((seat) => seat.seatNumber),
           expiresAt: savedReservation.expiresAt.toISOString(),
+          correlationId: this.requestContextService.getCorrelationId(),
         };
 
         await this.outboxService.enqueue(
@@ -209,6 +212,7 @@ export class ReservationsService {
         saleId: savedSale.id,
         sessionId: savedSale.sessionId,
         userId: savedSale.userId,
+        correlationId: this.requestContextService.getCorrelationId(),
       });
 
       return savedSale;
@@ -255,6 +259,7 @@ export class ReservationsService {
         RESERVATION_EXPIRED_ROUTING_KEY,
         {
           reservationId,
+          correlationId: this.requestContextService.getCorrelationId(),
         },
       );
     });

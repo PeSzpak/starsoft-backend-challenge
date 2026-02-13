@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { RequestContextService } from './common/request-context.service';
 import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { ReservationsModule } from './reservations/reservations.module';
@@ -36,6 +37,6 @@ import { OutboxModule } from './outbox/outbox.module';
     OutboxModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, RequestContextService],
 })
 export class AppModule {}

@@ -15,6 +15,10 @@ import {
   RESERVATION_EXPIRE_ROUTING_KEY,
 } from './messaging.constants';
 
+type PublishOptions = {
+  headers?: Record<string, unknown>;
+};
+
 @Injectable()
 export class MessagingService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MessagingService.name);
@@ -40,7 +44,11 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async publishEvent(routingKey: string, payload: object): Promise<void> {
+  async publishEvent(
+    routingKey: string,
+    payload: object,
+    options?: PublishOptions,
+  ): Promise<void> {
     await this.ensureConnected();
     const channel = this.getChannel();
 
@@ -51,6 +59,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
       {
         persistent: true,
         contentType: 'application/json',
+        headers: options?.headers,
       },
     );
   }
@@ -62,6 +71,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
       userId: string;
       seatNumbers: string[];
       expiresAt: string;
+      correlationId?: string;
     },
     ttlMs: number,
   ): Promise<void> {
@@ -75,10 +85,17 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
         expiration: String(ttlMs),
         persistent: true,
         contentType: 'application/json',
+        headers: {
+          'x-correlation-id': payload.correlationId,
+        },
       },
     );
 
-    await this.publishEvent(RESERVATION_CREATED_ROUTING_KEY, payload);
+    await this.publishEvent(RESERVATION_CREATED_ROUTING_KEY, payload, {
+      headers: {
+        'x-correlation-id': payload.correlationId,
+      },
+    });
   }
 
   async consume(
