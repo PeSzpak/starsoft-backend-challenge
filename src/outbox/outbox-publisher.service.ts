@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { RESERVATION_CREATED_ROUTING_KEY } from '../messaging/messaging.constants';
 import { MessagingService } from '../messaging/messaging.service';
 import { OutboxEvent, OutboxStatus } from './outbox-event.entity';
@@ -14,6 +14,8 @@ import { OutboxEvent, OutboxStatus } from './outbox-event.entity';
 @Injectable()
 export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxPublisherService.name);
+  private readonly batchSize = 50;
+  private readonly claimLeaseMs = 15_000;
   private timer: NodeJS.Timeout | null = null;
   private running = false;
 
@@ -50,14 +52,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
     this.running = true;
     try {
-      const events = await this.outboxRepository.find({
-        where: {
-          status: OutboxStatus.PENDING,
-          availableAt: LessThanOrEqual(new Date()),
-        },
-        order: { createdAt: 'ASC' },
-        take: 50,
-      });
+      const events = await this.claimPendingBatch(this.batchSize);
 
       for (const event of events) {
         await this.publishOne(event);
@@ -113,5 +108,40 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
     const ttlMs = Math.max(0, expiresAt.getTime() - Date.now());
 
     await this.messagingService.publishReservationCreated(payload, ttlMs);
+  }
+
+  private async claimPendingBatch(limit: number): Promise<OutboxEvent[]> {
+    return this.outboxRepository.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(OutboxEvent);
+
+      const rawIds = await repo
+        .createQueryBuilder('event')
+        .select('event.id', 'id')
+        .where('event.status = :status', { status: OutboxStatus.PENDING })
+        .andWhere('event.availableAt <= :now', { now: new Date() })
+        .orderBy('event.createdAt', 'ASC')
+        .limit(limit)
+        .setLock('pessimistic_write')
+        .setOnLocked('skip_locked')
+        .getRawMany<{ id: string }>();
+
+      const ids = rawIds.map((row) => row.id);
+
+      if (ids.length === 0) {
+        return [];
+      }
+
+      await repo
+        .createQueryBuilder()
+        .update(OutboxEvent)
+        .set({ availableAt: new Date(Date.now() + this.claimLeaseMs) })
+        .whereInIds(ids)
+        .execute();
+
+      return repo.find({
+        where: { id: In(ids) },
+        order: { createdAt: 'ASC' },
+      });
+    });
   }
 }
