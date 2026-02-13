@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { randomUUID } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { RequestContextService } from './common/request-context.service';
 
@@ -27,6 +28,17 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Cinema Ticket API')
+    .setDescription(
+      'API de reserva e venda de ingressos com controle de concorrencia',
+    )
+    .setVersion('1.0.0')
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api-docs', app, swaggerDocument);
+
   await app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();

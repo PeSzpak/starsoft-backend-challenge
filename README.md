@@ -53,6 +53,9 @@ npm run start:dev
 curl http://localhost:3001/health
 ```
 
+### 3.7 Swagger
+- URL: `http://localhost:3001/api-docs`
+
 ## 4. Fluxo de Teste Rapido
 ### 4.1 Criar sessao
 ```bash
