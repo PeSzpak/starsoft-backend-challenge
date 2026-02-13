@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { RequestContextService } from './common/request-context.service';
+import { CommonModule } from './common/common.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { ReservationsModule } from './reservations/reservations.module';
@@ -16,6 +16,7 @@ import { OutboxModule } from './outbox/outbox.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    CommonModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -37,6 +38,6 @@ import { OutboxModule } from './outbox/outbox.module';
     OutboxModule,
   ],
   controllers: [AppController],
-  providers: [AppService, RequestContextService],
+  providers: [AppService],
 })
 export class AppModule {}
