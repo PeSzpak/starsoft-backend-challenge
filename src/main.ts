@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { ConsoleLogger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { randomUUID } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
@@ -7,7 +7,15 @@ import { AppModule } from './app.module';
 import { RequestContextService } from './common/request-context.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+  app.useLogger(
+    new ConsoleLogger('App', {
+      logLevels: ['error', 'warn', 'log', 'debug', 'verbose'],
+      timestamp: true,
+    }),
+  );
   const requestContext = app.get(RequestContextService);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
