@@ -8,6 +8,8 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { AppRole } from '../auth/auth.types';
+import { Roles } from '../auth/roles.decorator';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { Session } from './session.entity';
@@ -18,6 +20,7 @@ export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
 
   @Post()
+  @Roles(AppRole.ADMIN)
   create(@Body() dto: CreateSessionDto): Promise<Session> {
     return this.sessionsService.create(dto);
   }
@@ -38,6 +41,7 @@ export class SessionsController {
   }
 
   @Patch(':id')
+  @Roles(AppRole.ADMIN)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSessionDto,
@@ -46,6 +50,7 @@ export class SessionsController {
   }
 
   @Delete(':id')
+  @Roles(AppRole.ADMIN)
   async remove(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<{ deleted: true }> {

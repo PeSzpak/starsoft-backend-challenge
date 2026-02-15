@@ -21,6 +21,8 @@ Objetivos da implementação:
 - `Redis` para lock distribuído por assento no fluxo de reserva.
 - `RabbitMQ` para mensageria de expiração e eventos de domínio.
 - `Outbox Pattern` para consistência entre commit no banco e publish no broker.
+- `AuthGuard` global com API key para autenticação.
+- `RolesGuard` global para autorização por perfil (`ADMIN` e `USER`).
 - `priceCents` em vez de float para valores monetários.
 - `FOR UPDATE SKIP LOCKED` no publisher do outbox para coordenação entre múltiplas instâncias.
 
@@ -56,6 +58,33 @@ npm install
 npm run start:dev
 ```
 Mantenha Postgres, Redis e RabbitMQ ativos no Docker.
+
+## Autenticação e Autorização
+Modelo adotado:
+- Header `x-api-key` (ou `Authorization: Bearer <api-key>`).
+- Perfis:
+- `ADMIN`: gerencia sessões e endpoints admin do outbox.
+- `USER`: faz reserva, confirma pagamento e consulta próprio histórico.
+
+Variáveis de ambiente:
+- `AUTH_ENABLED=true`
+- `AUTH_ADMIN_API_KEY=admin-secret`
+- `AUTH_USER_API_KEY=user-secret`
+- `AUTH_ADMIN_USER_ID=admin-1`
+- `AUTH_DEFAULT_USER_ID=user-1`
+
+Regras de autorização:
+- Sessões:
+- `POST/PATCH/DELETE /sessions` -> `ADMIN`
+- `GET /sessions*` -> `USER` ou `ADMIN`
+- Reservas:
+- `POST /reservations` -> `USER`/`ADMIN` (usuário comum só pode reservar para o próprio `userId`)
+- `POST /reservations/:id/confirm-payment` -> `USER`/`ADMIN`
+- `GET /reservations/users/:userId/purchases` -> `USER`/`ADMIN` (usuário comum só acessa o próprio histórico)
+- Outbox:
+- `/admin/outbox/*` -> `ADMIN`
+- Públicos:
+- `GET /` e `GET /health`
 
 ## Endpoints
 ### Aplicação
@@ -98,6 +127,10 @@ Arquivos prontos para importação:
 - `postman/Cinema-Ticket-API.postman_collection.json`
 - `postman/Cinema-Ticket-API.local.postman_environment.json`
 
+A collection já envia `x-api-key` automaticamente:
+- endpoints de usuário usam `{{userApiKey}}`
+- endpoints administrativos usam `{{adminApiKey}}`
+
 ## Requisitos Obrigatórios
 - `NestJS` + `Docker` + `PostgreSQL` + `Redis` + `RabbitMQ`.
 - Reserva de assentos com expiração de 30 segundos.
@@ -115,10 +148,17 @@ Arquivos prontos para importação:
 - Script de teste de concorrência para validação prática.
 
 ## Limitações Atuais
-- Sem autenticação/autorização.
 - Sem suíte completa de testes unitários e integração.
 - Sem CDC (ex.: Debezium) para o outbox (atualmente polling).
 - Sem dashboard dedicado de observabilidade do outbox.
+
+## Motivo das Limitações Restantes
+- Testes unitários/integração completos:
+- foco do desafio foi provar o fluxo crítico de concorrência e consistência distribuída; foi priorizado teste funcional (Postman + script de concorrência) para validar comportamento fim a fim.
+- CDC para outbox:
+- exige infraestrutura adicional (Kafka + Connect + Debezium) e operação mais complexa; polling foi escolhido por simplicidade e menor custo operacional para o escopo do desafio.
+- Dashboard de observabilidade:
+- foi entregue endpoint de métricas (`/admin/outbox/metrics`) como base; dashboard/alertas exigem stack extra (Prometheus/Grafana/ELK), fora do escopo principal de implementação.
 
 ## Melhorias Futuras
 - JWT + RBAC.

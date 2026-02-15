@@ -1,8 +1,11 @@
 import { Controller, Get, Post } from '@nestjs/common';
+import { AppRole } from '../auth/auth.types';
+import { Roles } from '../auth/roles.decorator';
 import { OutboxPublisherService } from './outbox-publisher.service';
 import { OutboxService } from './outbox.service';
 
 @Controller('admin/outbox')
+@Roles(AppRole.ADMIN)
 export class OutboxController {
   constructor(
     private readonly outboxService: OutboxService,

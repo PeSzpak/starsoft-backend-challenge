@@ -27,6 +27,10 @@
         "method": "POST",
         "header": [
           {
+            "key": "x-api-key",
+            "value": "{{adminApiKey}}"
+          },
+          {
             "key": "Content-Type",
             "value": "application/json"
           }
@@ -63,7 +67,12 @@
       "name": "List Sessions",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{userApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/sessions",
           "host": [
@@ -79,7 +88,12 @@
       "name": "Get Session By Id",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{userApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/sessions/{{sessionId}}",
           "host": [
@@ -96,7 +110,12 @@
       "name": "Get Session Availability",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{userApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/sessions/{{sessionId}}/availability",
           "host": [
@@ -115,6 +134,10 @@
       "request": {
         "method": "PATCH",
         "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{adminApiKey}}"
+          },
           {
             "key": "Content-Type",
             "value": "application/json"
@@ -141,6 +164,10 @@
       "request": {
         "method": "POST",
         "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{userApiKey}}"
+          },
           {
             "key": "Content-Type",
             "value": "application/json"
@@ -178,7 +205,12 @@
       "name": "Confirm Payment",
       "request": {
         "method": "POST",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{userApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/reservations/{{reservationId}}/confirm-payment",
           "host": [
@@ -196,7 +228,12 @@
       "name": "Get Purchase History by User",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{userApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/reservations/users/{{userId}}/purchases",
           "host": [
@@ -215,7 +252,12 @@
       "name": "Delete Session",
       "request": {
         "method": "DELETE",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{adminApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/sessions/{{sessionId}}",
           "host": [
@@ -232,7 +274,12 @@
       "name": "Outbox Metrics",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{adminApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/admin/outbox/metrics",
           "host": [
@@ -250,7 +297,12 @@
       "name": "Outbox Retry Failed",
       "request": {
         "method": "POST",
-        "header": [],
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{adminApiKey}}"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/admin/outbox/retry-failed",
           "host": [
@@ -297,6 +349,14 @@
     {
       "key": "userId",
       "value": "user-1"
+    },
+    {
+      "key": "adminApiKey",
+      "value": "admin-secret"
+    },
+    {
+      "key": "userApiKey",
+      "value": "user-secret"
     }
   ]
 }
