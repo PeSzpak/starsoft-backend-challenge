@@ -1,0 +1,634 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/sessions": {
+      "post": {
+        "operationId": "SessionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sessions"
+        ]
+      },
+      "get": {
+        "operationId": "SessionsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/sessions/{id}": {
+      "get": {
+        "operationId": "SessionsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sessions"
+        ]
+      },
+      "patch": {
+        "operationId": "SessionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sessions"
+        ]
+      },
+      "delete": {
+        "operationId": "SessionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/sessions/{id}/availability": {
+      "get": {
+        "operationId": "SessionsController_getAvailability",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/reservations": {
+      "post": {
+        "operationId": "ReservationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReservationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/reservations/{id}/confirm-payment": {
+      "post": {
+        "operationId": "ReservationsController_confirmPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sale"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/reservations/users/{userId}/purchases": {
+      "get": {
+        "operationId": "ReservationsController_getPurchaseHistory",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/admin/outbox/metrics": {
+      "get": {
+        "operationId": "OutboxController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Outbox"
+        ]
+      }
+    },
+    "/admin/outbox/retry-failed": {
+      "post": {
+        "operationId": "OutboxController_retryFailed",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Outbox"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Cinema Ticket API",
+    "description": "API de reserva e venda de ingressos com controle de concorrencia",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "docker compose"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "api-key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "schemas": {
+      "CreateSessionDto": {
+        "type": "object",
+        "properties": {
+          "movieTitle": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "roomName": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "number",
+            "minimum": 1
+          },
+          "totalSeats": {
+            "type": "number",
+            "minimum": 16
+          }
+        },
+        "required": [
+          "movieTitle",
+          "roomName",
+          "startsAt",
+          "priceCents"
+        ]
+      },
+      "ReservationSeat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "reservationId": {
+            "type": "string"
+          },
+          "reservation": {
+            "$ref": "#/components/schemas/Reservation"
+          },
+          "seatId": {
+            "type": "number"
+          },
+          "seat": {
+            "$ref": "#/components/schemas/Seat"
+          }
+        },
+        "required": [
+          "id",
+          "reservationId",
+          "reservation",
+          "seatId",
+          "seat"
+        ]
+      },
+      "Reservation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "number"
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "EXPIRED",
+              "CANCELLED"
+            ]
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reservationSeats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationSeat"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "sessionId",
+          "session",
+          "userId",
+          "status",
+          "expiresAt",
+          "createdAt",
+          "updatedAt",
+          "reservationSeats"
+        ]
+      },
+      "Sale": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "number"
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "reservationId": {
+            "type": "string"
+          },
+          "reservation": {
+            "$ref": "#/components/schemas/Reservation"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "confirmedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sessionId",
+          "session",
+          "reservationId",
+          "reservation",
+          "userId",
+          "totalCents",
+          "confirmedAt"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "movieTitle": {
+            "type": "string"
+          },
+          "roomName": {
+            "type": "string"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "number"
+          },
+          "totalSeats": {
+            "type": "number"
+          },
+          "seats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Seat"
+            }
+          },
+          "reservations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reservation"
+            }
+          },
+          "sales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Sale"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "movieTitle",
+          "roomName",
+          "startsAt",
+          "priceCents",
+          "totalSeats",
+          "seats",
+          "reservations",
+          "sales"
+        ]
+      },
+      "Seat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "sessionId": {
+            "type": "number"
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "seatNumber": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "RESERVED",
+              "SOLD"
+            ]
+          },
+          "reservationSeats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationSeat"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "sessionId",
+          "session",
+          "seatNumber",
+          "status",
+          "reservationSeats"
+        ]
+      },
+      "UpdateSessionDto": {
+        "type": "object",
+        "properties": {
+          "movieTitle": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "roomName": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "number",
+            "minimum": 1
+          },
+          "totalSeats": {
+            "type": "number",
+            "minimum": 16
+          }
+        }
+      },
+      "CreateReservationDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "number",
+            "minimum": 1
+          },
+          "userId": {
+            "type": "string"
+          },
+          "seatNumbers": {
+            "uniqueItems": true,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sessionId",
+          "userId",
+          "seatNumbers"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "api-key": []
+    }
+  ]
+}
