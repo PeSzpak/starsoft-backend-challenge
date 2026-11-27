@@ -43,10 +43,8 @@ async function bootstrap() {
       'API de reserva e venda de ingressos com controle de concorrencia',
     )
     .setVersion('1.0.0')
-    .addApiKey(
-      { type: 'apiKey', name: 'x-api-key', in: 'header' },
-      'api-key',
-    )
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'api-key')
+    .addSecurityRequirements('api-key')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api-docs', app, swaggerDocument);
